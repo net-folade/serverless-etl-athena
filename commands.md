@@ -77,6 +77,9 @@ aws lambda add-permission \
   --source-arn arn:aws:s3:::$BUCKET \
   --source-account $ACCOUNT
 
+# Edit policies/notification.json first and replace $AWS_REGION, $ACCOUNT,
+# and $FN in LambdaFunctionArn with real values. S3 validates the
+# destination function, so an unsubstituted ARN fails this call outright.
 aws s3api put-bucket-notification-configuration \
   --bucket $BUCKET \
   --notification-configuration file://policies/notification.json
