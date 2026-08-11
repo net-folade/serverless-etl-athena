@@ -27,15 +27,15 @@ aws s3api put-public-access-block \
 ```bash
 aws iam create-role \
   --role-name $ROLE \
-  --assume-role-policy-document file://policies/trust-policy.json
+  --assume-role-policy-document file://policies/trust.json
 
-sed "s|\$BUCKET|$BUCKET|g; s|\$ACCOUNT|$ACCOUNT|g; s|\$REGION|$REGION|g" \
-  policies/lambda-policy.json > /tmp/lambda-policy.json
-
+# Edit policies/lambda-policy.json first and replace $BUCKET, $ACCOUNT,
+# $AWS_REGION, and $FN with real values. IAM stores the document verbatim,
+# so unsubstituted placeholders produce a policy that grants nothing.
 aws iam put-role-policy \
   --role-name $ROLE \
   --policy-name etl-transform-policy \
-  --policy-document file:///tmp/lambda-policy.json
+  --policy-document file://policies/lambda-policy.json
 
 aws iam get-role --role-name $ROLE --query 'Role.Arn'
 ```
@@ -43,17 +43,23 @@ aws iam get-role --role-name $ROLE --query 'Role.Arn'
 ## 3. Lambda
 
 ```bash
-zip -j function.zip src/handler.py
+zip -j function.zip handler.py
+
+# Layer versions differ by region and runtime, so resolve the current one
+# rather than pinning a number that may not exist in $REGION.
+export LAYER_ARN=$(aws lambda list-layer-versions \
+  --layer-name arn:aws:lambda:$REGION:336392948345:layer:AWSSDKPandas-Python313 \
+  --query 'LayerVersions[0].LayerVersionArn' --output text)
 
 aws lambda create-function \
   --function-name $FN \
-  --runtime python3.12 \
+  --runtime python3.13 \
   --handler handler.lambda_handler \
   --role arn:aws:iam::$ACCOUNT:role/$ROLE \
   --zip-file fileb://function.zip \
   --timeout 60 \
   --memory-size 1024 \
-  --layers arn:aws:lambda:$REGION:336392948345:layer:AWSSDKPandas-Python312:16
+  --layers $LAYER_ARN
 
 aws lambda update-function-code \
   --function-name $FN \
@@ -71,6 +77,9 @@ aws lambda add-permission \
   --source-arn arn:aws:s3:::$BUCKET \
   --source-account $ACCOUNT
 
+# Edit policies/notification.json first and replace $AWS_REGION, $ACCOUNT,
+# and $FN in LambdaFunctionArn with real values. S3 validates the
+# destination function, so an unsubstituted ARN fails this call outright.
 aws s3api put-bucket-notification-configuration \
   --bucket $BUCKET \
   --notification-configuration file://policies/notification.json
