@@ -1,0 +1,22 @@
+{
+    "LambdaFunctionConfigurations": [
+        {
+            "LambdaFunctionArn": "arn:aws:lambda:$AWS_REGION:$ACCOUNT:function:$FN",
+            "Events": ["s3:ObjectCreated:*"],
+            "Filter": {
+                "Key": {
+                    "FilterRules": [
+                        {
+                            "Name": "prefix",
+                            "Value": "raw/"
+                        },
+                        {
+                            "Name": "suffix",
+                            "Value": ".csv"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

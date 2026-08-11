@@ -1,0 +1,33 @@
+{
+    "Name": "sales",
+    "TableType": "EXTERNAL_TABLE",
+    "PartitionKeys": [
+      { "Name": "region", "Type": "string" }
+    ],
+    "StorageDescriptor": {
+      "Columns": [
+        { "Name": "transaction_id",   "Type": "string" },
+        { "Name": "date",             "Type": "date" },
+        { "Name": "product_category", "Type": "string" },
+        { "Name": "product_name",     "Type": "string" },
+        { "Name": "units_sold",       "Type": "int" },
+        { "Name": "unit_price",       "Type": "double" },
+        { "Name": "total_revenue",    "Type": "double" },
+        { "Name": "payment_method",   "Type": "string" }
+      ],
+      "Location": "s3://$BUCKET/processed/",
+      "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+      "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+      "SerdeInfo": {
+        "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+      }
+    },
+    "Parameters": {
+      "EXTERNAL": "TRUE",
+      "classification": "parquet",
+      "projection.enabled": "true",
+      "projection.region.type": "enum",
+      "projection.region.values": "north_america,europe,asia",
+      "storage.location.template": "s3://$BUCKET/processed/region=${region}"
+    }
+  }
